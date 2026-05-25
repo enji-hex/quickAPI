@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My First Page</title>
+</head>
+<body>
+    <div style="margin-bottom: 2rem;">
+        <h1>Welcome to My Website</h1>
+        <p> ULTIMATE SYSTEM 86</p>
+        <span id="status">UNKNOWN..</span>
+        
+    </div>
+
+    <span id="post_data"></span>
+    <div>
+        
+        <input type="text" placeholder="user_id" id="user_id">
+        <input type="number" placeholder="post_id" id="post_id">
+        <button id="test-btn">Click</button>
+    </div>
+    
+    <div style="display: grid;grid-template-columns: repeat(3,1fr);gap: 2rem;max-width: fit-content;margin-top: 1rem;">
+        <div class="img" style="background-image: url(test/feh_009721_000001_wp2.jpg);"></div>
+        <div class="img" style="background-image: url(test/1761258863488669.png);"></div>
+        <div class="img" style="background-image: url(test/wp3.jpg);"></div>
+        <div class="img" style="background-image: url(test/feh_009721_000001_wp2.jpg);"></div>
+        <div class="img" style="background-image: url(test/1761258863488669.png);"></div>
+        <div class="img" style="background-image: url(test/wp3.jpg);"></div>
+    </div>
+    <style>
+        .img {
+            width: 20rem;
+            height: 10rem;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
+    </style>
+    <script>
+        async function test() {
+            let res = await fetch('/api/v1/check',{
+                method:'POST'
+            })
+            let js = await res.json()
+            document.getElementById('status').textContent = js['status']
+        }
+
+        setInterval(() => {test()}, 5000);
+        
+        async function get_post(user,post_id) {
+            
+        }
+        
+        document.getElementById('test-btn').addEventListener('click', async (ev)=>{
+            let res =  await fetch(`/api/v1/users/${user_id.value}/posts/${post_id.value}`,{method:"GET"})
+            if (res.status == 200){
+                post_data.textContent = (await res.json())['msg']
+            }
+        })
+    </script>
+
+</body>
+</html>
+
