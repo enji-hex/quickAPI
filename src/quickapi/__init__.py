@@ -1,4 +1,4 @@
-from http.server import HTTPServer,BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler
 import json
 import os
 from typing import Callable, Dict, Tuple,Optional
@@ -10,13 +10,16 @@ class Request:
         self.params   = params
 
 class Route:
-    def __init__(self,handler:Callable,encoder:Callable):
-        self.handler = handler
-        self.encoder = encoder
+    def __init__(self,handler:Callable,encoder:Callable,path:str=""):
+        self.handler     = handler
+        self.encoder     = encoder
+        self.segments    = [s for s in path.split('/') if s]
+        self.base_prefix = path.split('{')[0] if '{filename*}' in path else None
 
 class quickAPI:
     def __init__(self):
         self.routes: Dict[Tuple[str,str],Route] = {}
+        self.status_routes: Dict[Tuple[str,str],Route] = {}
 
     def serialize(self,data) -> Tuple[bytes,str]:
         if isinstance(data,(dict,list)):
@@ -26,9 +29,12 @@ class quickAPI:
         return (data, 'application/octet-stream') if isinstance(data, bytes) else (str(data).encode('utf-8'), 'text/plain')
 
     def register(self,method:str,path:str):
+        if (method,path) in self.routes or (method,path) in self.status_routes:
+            raise ValueError(f"Route already defined {(method,path)}")
         def decorator(func:Callable):
-            if (method,path) in self.routes: raise ValueError(f"Route already defined {(method,path)}")
-            self.routes[(method,path)] = Route(func,self.serialize)
+            route = Route(func,self.serialize,path)
+            if '{' in path and '}' in path: self.routes[(method,path)]        = route
+            else:                           self.status_routes[(method,path)] = route
             return func
         return decorator
 
@@ -38,36 +44,38 @@ class quickAPI:
         path_pattern = f'/{prefix}/{{filename*}}' if prefix else "/{filename*}"
         if ('GET',path_pattern) in self.routes:
             raise KeyError(f'Mount already defined {path_pattern}')
+        
+        sub_app.base_prefix = path_pattern.split('{')[0]
         self.routes[('GET',path_pattern)] = sub_app
 
     def match_route(self,method:str,in_path:str) -> Tuple[Optional[Route],dict]:
         """Return meta for route, param dict"""
+        
+        # one line static route
+        if (method,in_path) in self.status_routes: return self.status_routes[(method,in_path)],{} 
         in_segs = [s for s in in_path.split('/') if s]
-        static_fallback = None
 
-        for (r_method,r_path),route in self.routes.items():
+        for (r_method,_),route in self.routes.items():
             if r_method != method: continue
-            # static files
-            if r_path.endswith('{filename*}'):
-                base_prefix = r_path.split('{')[0]
-                if in_path.startswith(base_prefix) or in_path == base_prefix.rstrip('/'):
-                    filename = in_path[len(base_prefix):] if in_path.startswith(base_prefix) else ""
-                    static_fallback =  route, {'filename':filename}
+            # file path
+            if route.base_prefix is not None:
+                if in_path.startswith(route.base_prefix):
+                    filename = in_path[len(route.base_prefix):]
+                    return route, {'filename':filename}
                 continue
 
-            # standard dynami path
-            r_segs = [s for s in r_path.split('/') if s]
-            if len(r_segs) != len(in_segs) : continue
+            # dynamic path
+            r_segs = route.segments
+            if len(r_segs) != len(in_segs): continue
 
             params,match_found = {},True
             for r_seg,i_seg in zip(r_segs,in_segs):
                 if r_seg.startswith('{') and r_seg.endswith('}'):
-                     params[r_seg[1:-1]] = i_seg
+                    params[r_seg[1:-1]] = i_seg
                 elif r_seg != i_seg:
                     match_found = False; break
             if match_found: return route,params
         
-        if static_fallback: return static_fallback
         return None,{}
     
     def post(self,path:str): return self.register('POST',path)
