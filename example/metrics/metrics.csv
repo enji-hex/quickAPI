@@ -1,0 +1,7 @@
+Name,RPS,AVG_LAT,P99_LAT,ERRORS
+quickapi_static,7329.67,0.01,0,0
+quickapi_dynamic,2332,0.01,0,0
+fastapi_static,1325.2,5051.63,6011,7488
+fastapi_dynamic,891.6,1.01,1,0
+flask_static,2492.94,8028.99,15652,3469
+flask_dynamic,2434.2,7345.68,15187,0

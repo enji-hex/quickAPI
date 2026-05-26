@@ -1,6 +1,7 @@
 from http.server import BaseHTTPRequestHandler
 import json
 import os
+import socket
 from typing import Callable, Dict, Tuple,Optional
 
 class Request:
@@ -82,10 +83,18 @@ class quickAPI:
     def get(self,path:str):  return self.register('GET',path)
 
 class RouterHandler(BaseHTTPRequestHandler):
+    protocol_version = 'HTTP/1.1'
+
+    def setup(self):
+        self.disable_nagle_algorithm = True
+        return super().setup()
+    
     def __init__(self, app:quickAPI, *args, **kwargs):
         self.app = app
         super().__init__(*args,**kwargs)
-
+    
+    def log_message(self, format, *args): pass
+        
     def handle_req(self,method:str):
         path = self.path.split('?')[0].split('#')[0]
 
@@ -100,8 +109,10 @@ class RouterHandler(BaseHTTPRequestHandler):
 
         self.send_response(status_code)
         self.send_header('Content-Type',content_type)
+        self.send_header('Content-Length',str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+        self.wfile.flush()
 
     def do_GET(self): self.handle_req('GET')
     def do_POST(self): self.handle_req('POST')
