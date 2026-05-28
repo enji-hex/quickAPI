@@ -1,7 +1,5 @@
 from http.server import BaseHTTPRequestHandler
 import json
-import os
-import socket
 from typing import Callable, Dict, Tuple,Optional
 
 class Request:

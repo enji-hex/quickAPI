@@ -13,7 +13,7 @@ test_targets = [
 ]
 
 CONCURRENCY = "1"
-DURATION    = "30s"
+DURATION    = "120s"
 
 def extract_metrics(json_filepath):
     with open(json_filepath, 'r') as f:
