@@ -1,5 +1,4 @@
 import socket
-
 from quickapi import quickAPI,Request,RouterHandler
 from quickapi.static import StaticFiles
 from http.server import HTTPServer,ThreadingHTTPServer
