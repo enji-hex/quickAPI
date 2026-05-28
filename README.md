@@ -1,5 +1,4 @@
 
-
 # quickAPI
 
 quickAPI is a extremely lightweight, high-performnace backend framework. Initially built on top of Python's native [http.server](https://docs.python.org/3/library/http.server.html),
@@ -20,16 +19,40 @@ highly optimized version of that paradigm with absolute minimum of code footprin
 - **Mounting Restrictions:** Directory mounting must be bound to a non-root entry point. Mounting a folder directly to the root (`/`) will disrupt standard routing logic.
 - **Concurrency:** Operates strictly in a single-threaded execution loop.
 
+## Quickstart 
+
+Designed with a sharp focus on Developer Experience (DX), quickAPI implements a clean, intuitive interface inspired by FastAPI. Below is quick example of functional web server handling dynamic routes alongside static directory mounting:
+
+```python
+app = quickAPI()
+# mount public assets( or even frontend app like React)
+app.mount(url_prefix='/assets',sub_app=StaticFiles(directory='./public/'))
+
+@app.post('/api/user/{user_id}/post/{post_id}')
+def post_check(req, user_id, post_id):
+    # Path matching guarantees these variables exist as strings.
+    # Simply check if they are numeric before casting.
+    if user_id.isdigit() and post_id.isdigit():
+        post_data: dict = db_request(int(user_id), int(post_id))
+        return 200, post_data
+    return 400, "Bad Request: Parameters must be numeric"
+
+if __name__ == '__main__':
+    server = HTTPServer(('0.0.0.0',8080), 
+        lambda *args, **kwargs: RouterHandler(app,*args,**kwargs))
+    server.serve_forever()
+```
+
 ## Architecture & Components
 
 ```mermaid
 flowchart LR
-H(handle_func) --> Q(quickAPI) --> R(RouteHandler)
+H(handle_func) --> Q(quickAPI) --> R(RouterHandler)
 ```
 
 - `handle_func` - The user-defined handler function wrapped by a route decorator to process incoming requests.
 - `quickAPI` - The core framework engine. It handles route registration, route matching, and the serialization of payloads returned by user functions.
-- `RouteHandler` - The data entry point that directly receives incoming network requests and forwards them to the quickAPI engine.
+- `RouterHandler` - The data entry point that directly receives incoming network requests and forwards them to the quickAPI engine.
 
 
 ### quickAPI Static File Serving (`quickapi[static]`)
@@ -66,7 +89,7 @@ that leads O(n) complexity plus additional time for for each route comparison.
 
 All tests was performed in single thread mode.
 
-> [!note] While single-threaded testing limits FastAPI's native async design, it isolates and measures pure routing pipeline overhead.
+> ⚠️ While single-threaded testing limits FastAPI's native async design, it isolates and measures pure routing pipeline overhead.
 
 ### Duration: 10s
 
